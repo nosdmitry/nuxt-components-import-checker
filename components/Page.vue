@@ -9,11 +9,15 @@
 
 <script lang="ts">
 import BaseButton from './BaseButton.vue';
+import MainImage from './MainImage.vue';
+
+const SvgIcon = defineAsyncComponent(() => import('~/some-path'));
 
 export default defineNuxtComponent({
   name: 'Page',
   components: {
-    BaseButton
+    BaseButton,
+    SvgIcon
   }
 
 })

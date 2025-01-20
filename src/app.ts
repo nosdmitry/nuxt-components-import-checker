@@ -1,32 +1,13 @@
-const content = `
-<template>
-  <div>
-    <section-base />
-    <main-section-sticky />
-    <client-only />
-    <template>
-      <main-button>
-        <form>
-          <lable>
-            <grid-content />
-          </lable>
-        </form>
-      </main-button>
-    </template>
-  </div>
-</template>
+const fs = require("fs");
+const path = require("path");
+const glob = require("glob");
 
-<script>
-import SectionBase from '~/section-base.vue';
-import Gridcontent from '@/vue';
-
-const MainSectionSticky = defineAsyncComponent(() => import('some-path'));
-</script>
-`;
+const COMPONENTS_PATH = ".";
 
 interface ComponentOptions {
   regexComp: RegExp[];
   regexTemplate: RegExp;
+  content: any;
 }
 
 const REGEX_TEMPLATE = /<template[\s\S]*?<\/template>/i;
@@ -35,10 +16,10 @@ const REGEX_CEBABCASE = /[A-Z]+(?![a-z])|[A-Z]/g;
 const REGEX_COMPONENT = [
   /<([a-z0-9]+-[a-z0-9-]+)\b/g,
   /import\s+(\w+)\s+from\s+['"][^'"]+['"]/g,
-  /const (\w+) = defineAsyncComponent\(\(\) => import\('[^']+'\)\);?/g
+  /const (\w+) = defineAsyncComponent\(\(\) => import\('[^']+'\)\);?/g,
 ];
 
-const ignoreTags = ["client-only"];
+const ignoreTags = ["client-only", "nuxt-link"];
 
 const toCebabCase = (str: string) => str.replace(REGEX_CEBABCASE, ($, ofs) => (ofs ? "-" : "") + $.toLowerCase());
 
@@ -48,7 +29,7 @@ const getStringByRegexp = (regex: RegExp, template: string) => {
   return usedComponentsList.filter((comp) => !ignoreTags.includes(comp));
 };
 
-const getComponentNames = ({ regexComp, regexTemplate }: ComponentOptions): null | string[] => {
+const getComponentNames = ({ regexComp, regexTemplate, content }: ComponentOptions): null | string[] => {
   const templateMatch = content.match(regexTemplate);
   if (!templateMatch) {
     return null;
@@ -66,15 +47,14 @@ const getComponentNames = ({ regexComp, regexTemplate }: ComponentOptions): null
   return Array.from(new Set(components));
 };
 
-const showNotImportedComponents = () => {
-  const componentListTemplate = getComponentNames({ regexComp: REGEX_COMPONENT, regexTemplate: REGEX_TEMPLATE });
-  console.log(componentListTemplate);
+const showNotImportedComponents = (file: any, content: any) => {
+  const componentListTemplate = getComponentNames({ regexComp: REGEX_COMPONENT, regexTemplate: REGEX_TEMPLATE, content });
 
   if (!componentListTemplate) {
     return;
   }
 
-  const componentListScript = getComponentNames({ regexComp: REGEX_COMPONENT, regexTemplate: REGEX_IMPORTS });
+  const componentListScript = getComponentNames({ regexComp: REGEX_COMPONENT, regexTemplate: REGEX_IMPORTS, content });
 
   componentListTemplate.forEach((component) => {
     const isImported = componentListScript?.includes(component);
@@ -82,9 +62,18 @@ const showNotImportedComponents = () => {
       return;
     }
 
+    console.log("File path:", file);
     console.log("Missing components:", component);
     console.log("---");
   });
 };
 
-showNotImportedComponents();
+const checkFilesAllFiles = () => {
+  const vueFiles = glob.sync(`${COMPONENTS_PATH}/**/*.vue`);
+  vueFiles.forEach((file: any) => {
+    const content = fs.readFileSync(file, "utf-8");
+    showNotImportedComponents(file, content);
+  });
+};
+
+checkFilesAllFiles();

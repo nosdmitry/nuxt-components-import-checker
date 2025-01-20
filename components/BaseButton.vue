@@ -6,6 +6,7 @@
 </template>
 
 <script lang="ts">
+  const MainImage = defineAsyncComponent(() => import('./MainImage.vue'));
 export default defineNuxtComponent({
   name: 'BaseButton',
   components: {
